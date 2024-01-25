@@ -5,7 +5,7 @@ README:
     `pip install prettytable`
 
 USAGE:
-    python stock.py [number of stocks (default: 3)]
+    python stock.py [number of stocks (default: 10)]
 
 MIT License
 
@@ -30,14 +30,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 """
 
-
 import random
 import sys
 
 import prettytable
 
 # year-month-day-version
-VERSION = "2024.01.24-3"
+VERSION = "2024.01.25-1"
 PRECISION = 1
 
 
@@ -72,12 +71,12 @@ class Stock:
         """Deduct money and increase inventory, and return new balance value
         Warning! This assumes player has enough money to purchase!"""
         self.inventory += amount
-        if amount > 0:
-            trading_fees_percentage = 0 - trading_fees_percentage
-        fee_deducted = amount * self.price * trading_fees_percentage / 100
+        if amount < 0:
+            trading_fees_percentage = -trading_fees_percentage
+        fee_cost = round(amount * self.price * trading_fees_percentage / 100, PRECISION)
         return (
             balance - amount * self.price * (1 + trading_fees_percentage / 100),
-            fee_deducted,
+            fee_cost,
         )
 
     def next_day(self) -> None:
@@ -109,7 +108,7 @@ class Stock:
 
 
 # Game settings
-STOCK_COUNT = 3
+STOCK_COUNT = 10
 MONEY = 1000
 STOCK_TRADE_FEE_PERCENTAGE = 0.1
 if len(sys.argv) == 2:
@@ -138,21 +137,23 @@ def display_stock_information_table(
     to_be_printed = prettytable.PrettyTable()
     to_be_printed.field_names = [
         "Stock name",
-        "Stock price",
+        "Price",
+        "Change",
         "Inventory",
-        "Change (%)",
-        "Average price (5d)",
         "Affordable amount",
+        "Avg price (5d)",
     ]
     for stock_objects in stock_list_variable:
+        # formatting
+        _a = stock_objects.get_price_change()
         to_be_printed.add_row(
             [
                 stock_objects.name,
                 round(stock_objects.price, PRECISION),
+                f"{_a[0] if _a[0] < 0 else '+' + str(_a[0])} ({_a[1] if _a[1] < 0 else '+' + str(_a[1])}%)",
                 stock_objects.inventory,
-                f"{stock_objects.get_price_change()[0]} ({stock_objects.get_price_change()[1]}%)",
-                stock_objects.get_average_price(5),
                 int(balance / stock_objects.price),
+                stock_objects.get_average_price(5),
             ]
         )
     print(to_be_printed)
@@ -166,47 +167,51 @@ while True:
             "Input command (BUY, SELL, INVENTORY, NEXT-DAY, DISPLAY, HELP): "
         ).upper()
         match inputted_command:
-            case "BUY":
+            case "BUY" | "B":
                 stock_to_buy = int(input("Input stock number to buy: "))
                 amount_to_buy = int(input("Input amount of stock to buy: "))
                 if stock_list[stock_to_buy - 1].purchase_test(amount_to_buy, MONEY):
-                    MONEY = stock_list[stock_to_buy - 1].purchase(
+                    MONEY, fee_deducted = stock_list[stock_to_buy - 1].purchase(
                         amount_to_buy, MONEY, STOCK_TRADE_FEE_PERCENTAGE
                     )
-                    print(f"Successfully bought {amount_to_buy} stock(s)!")
+                    print(
+                        f"Successfully bought {amount_to_buy} stock(s)! Paid {fee_deducted} for trading fees."
+                    )
                 else:
                     print("You do not have enough MONEY to buy!")
-            case "SELL":
+            case "SELL" | "S":
                 stock_to_sell = int(input("Input stock number to sell: "))
                 amount_to_sell = int(input("Input amount of stock to sell: "))
                 if amount_to_sell > stock_list[stock_to_sell - 1].inventory:
                     print("You do not have enough stock to sell!")
                 else:
-                    MONEY += stock_list[stock_to_sell - 1].purchase(
+                    MONEY, fee_deducted = stock_list[stock_to_sell - 1].purchase(
                         0 - amount_to_sell, MONEY, STOCK_TRADE_FEE_PERCENTAGE
                     )
-                    print(f"Successfully sold {amount_to_sell} stock(s)!")
-            case "INVENTORY":
+                    print(
+                        f"Successfully sold {amount_to_sell} stock(s)! Paid {fee_deducted} for trading fees."
+                    )
+            case "INVENTORY" | "INV":
                 print(f"Your current balance is {MONEY}")
                 print("Your current inventory is:")
                 inventory_table = prettytable.PrettyTable()
-                inventory_table.field_names = ["Stock name", "Inventory"]
+                inventory_table.field_names = ["Stock Name", "Inventory"]
                 for stocks in stock_list:
                     inventory_table.add_row([stocks.name, stocks.inventory])
                 print(inventory_table)
-            case "NEXT-DAY":
+            case "NEXT-DAY" | "ND":
                 print()
                 for stocks in stock_list:
                     stocks.next_day()
                 break
-            case "DISPLAY":
+            case "DISPLAY" | "D":
                 display_stock_information_table(stock_list, MONEY)
-            case "HELP":
-                print("BUY: Buy stock")
-                print("SELL: Sell stock")
-                print("INVENTORY: View inventory")
-                print("NEXT-DAY: Go to next day")
-                print("DISPLAY: Display stock information")
-                print("HELP: View help")
+            case "HELP" | "H":
+                print("BUY/B: Buy stock")
+                print("SELL/S: Sell stock")
+                print("INVENTORY/INV: View inventory")
+                print("NEXT-DAY/ND: Go to next day")
+                print("DISPLAY/D: Display stock information")
+                print("HELP/H: View help")
             case _:
                 print("Invalid command!")
