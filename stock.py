@@ -5,7 +5,7 @@ README: Please install prettytable before running this script:
 
 MIT License
 
-Copyright (c) 2023 eric15342335
+Copyright (c) 2024 eric15342335
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,8 +31,8 @@ import random
 
 import prettytable
 
-# year-month-day-VERSION
-VERSION = "2024-01-24-1"
+# year-month-day-version
+VERSION = "2024.01.24-2"
 PRECISION = 1
 
 
@@ -40,13 +40,14 @@ def pseudo_norm():
     """Generate a value between 1-10000 in a normal distribution"""
     # https://stackoverflow.com/a/70780909
     count = 100
-    values = sum([random.randint(1, 10000) for _ in range(count)])
+    values = sum((random.randint(1, 10000) for _ in range(count)))
     return round(values / count)
 
 
 class Stock:
     """Stock class representing a real life stock with price, (player) inventory,
     and price history"""
+
     def __init__(self, order: int) -> None:
         """Set stock price, initialize inventory count, stock history"""
         self.price = round(random.uniform(10, 200), PRECISION)
@@ -94,7 +95,7 @@ class Stock:
 
 # Game settings
 STOCK_COUNT = 3
-money = 1000
+MONEY = 1000
 
 # initialize stock
 print()
@@ -103,11 +104,16 @@ print("Initializing game....")
 stock_list = [Stock(count) for count in range(1, STOCK_COUNT + 1)]
 
 print(f"Number of stocks: {STOCK_COUNT}")
-print(f"Default money: {money}")
+print(f"Default MONEY: {MONEY}")
 
 print()
 print(f"Welcome to Stock Market Simulator {VERSION}!")
-while True:
+
+
+def display_stock_information_table(
+    stock_list_variable: list[Stock], balance: float
+) -> None:
+    """Display stock information table"""
     print("Current stock price:")
     to_be_printed = prettytable.PrettyTable()
     to_be_printed.field_names = [
@@ -116,63 +122,68 @@ while True:
         "Inventory",
         "Change (%)",
         "Average price (5d)",
+        "Affordable amount",
     ]
-    for stocks in stock_list:
+    for stock_objects in stock_list_variable:
         to_be_printed.add_row(
             [
-                stocks.name,
-                round(stocks.price, PRECISION),
-                stocks.inventory,
-                f"{stocks.get_price_change()[0]} ({stocks.get_price_change()[1]}%)",
-                stocks.get_average_price(5),
+                stock_objects.name,
+                round(stock_objects.price, PRECISION),
+                stock_objects.inventory,
+                f"{stock_objects.get_price_change()[0]} ({stock_objects.get_price_change()[1]}%)",
+                stock_objects.get_average_price(5),
+                int(balance / stock_objects.price),
             ]
         )
     print(to_be_printed)
-    print(f"Your current balance is {money}")
+    print(f"Your current balance is {balance}")
+
+
+while True:
+    display_stock_information_table(stock_list, MONEY)
     while True:
         inputted_command = input(
-            "Input command (BUY, SELL, INVENTORY, NEXT-DAY, HELP): "
+            "Input command (BUY, SELL, INVENTORY, NEXT-DAY, DISPLAY, HELP): "
         ).upper()
         match inputted_command:
             case "BUY":
-                print("You have chosen to buy stock!")
                 stock_to_buy = int(input("Input stock number to buy: "))
                 amount_to_buy = int(input("Input amount of stock to buy: "))
-                if stock_list[stock_to_buy - 1].purchase_test(amount_to_buy, money):
-                    money = stock_list[stock_to_buy - 1].purchase(amount_to_buy, money)
+                if stock_list[stock_to_buy - 1].purchase_test(amount_to_buy, MONEY):
+                    MONEY = stock_list[stock_to_buy - 1].purchase(amount_to_buy, MONEY)
                     print(f"Successfully bought {amount_to_buy} stock(s)!")
                 else:
-                    print("You do not have enough money to buy!")
+                    print("You do not have enough MONEY to buy!")
             case "SELL":
-                print("You have chosen to sell stock!")
                 stock_to_sell = int(input("Input stock number to sell: "))
                 amount_to_sell = int(input("Input amount of stock to sell: "))
                 if amount_to_sell > stock_list[stock_to_sell - 1].inventory:
                     print("You do not have enough stock to sell!")
                 else:
-                    money += stock_list[stock_to_sell - 1].price * amount_to_sell
+                    MONEY += stock_list[stock_to_sell - 1].price * amount_to_sell
                     stock_list[stock_to_sell - 1].inventory -= amount_to_sell
                     print(f"Successfully sold {amount_to_sell} stock(s)!")
             case "INVENTORY":
-                print("You have chosen to view inventory!")
-                print(f"Your current balance is {money}")
+                print(f"Your current balance is {MONEY}")
                 print("Your current inventory is:")
-                to_be_printed = prettytable.PrettyTable()
-                to_be_printed.field_names = ["Stock name", "Inventory"]
+                inventory_table = prettytable.PrettyTable()
+                inventory_table.field_names = ["Stock name", "Inventory"]
                 for stocks in stock_list:
-                    to_be_printed.add_row([stocks.name, stocks.inventory])
-                print(to_be_printed)
+                    inventory_table.add_row([stocks.name, stocks.inventory])
+                print(inventory_table)
             case "NEXT-DAY":
                 print("You have chosen to go to next day!")
                 for stocks in stock_list:
                     stocks.next_day()
                 break
+            case "DISPLAY":
+                display_stock_information_table(stock_list, MONEY)
             case "HELP":
-                print("You have chosen to view help!")
                 print("BUY: Buy stock")
                 print("SELL: Sell stock")
                 print("INVENTORY: View inventory")
-                print("HELP: View help")
                 print("NEXT-DAY: Go to next day")
+                print("DISPLAY: Display stock information")
+                print("HELP: View help")
             case _:
                 print("Invalid command!")
