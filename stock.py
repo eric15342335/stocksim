@@ -100,8 +100,9 @@ class Stock:
         return balance - self.actual_price(amount) >= 0
 
     def sell_test(self, amount: int, balance: float) -> bool:
-        """Just an alias of Stock.purchase_test()"""
-        return self.purchase_test(amount, balance)
+        """Just an alias of Stock.purchase_test()
+        with amount negated"""
+        return self.purchase_test(-amount, balance)
 
     def actual_price(self, amount: int) -> float:
         """Return actual price of {amount} stocks, including trading fees"""
@@ -276,7 +277,7 @@ while True:
                 amount_to_sell = int(input("Input amount of stock to sell: "))
                 if stock_list[stock_to_sell - 1].sell_test(amount_to_sell, MONEY):
                     MONEY, fee_deducted = stock_list[stock_to_sell - 1].purchase(
-                        0 - amount_to_sell, MONEY, STOCK_TRADE_FEE_PERCENTAGE
+                        -amount_to_sell, MONEY, STOCK_TRADE_FEE_PERCENTAGE
                     )
                     print(
                         f"Successfully sold {amount_to_sell} stock(s)!",
