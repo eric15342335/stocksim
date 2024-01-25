@@ -36,19 +36,20 @@ import sys
 import prettytable
 
 # year-month-day-version
-VERSION = "2024.01.25-2"
+VERSION = "2024.01.25-3"
 PRECISION = 1
 
 
 def pseudo_norm():
     """Generate a value between 1-10000 in a normal distribution"""
     # https://stackoverflow.com/a/70780909
-    count = random.randint(3, 20)
+    count = random.randint(1, 6) * random.randint(1, 6)
     values = sum((random.randint(1, 10000) for _ in range(count)))
     return round(values / count)
 
 
 def get_random_name() -> str:
+    """Generate a random company name"""
     list_of_endings = [
         " Inc.",
         " Corp.",
@@ -67,9 +68,7 @@ def get_random_name() -> str:
     final_name += random.choice(list_of_endings)
     # easter egg
     if random.randint(1, 30) == 1:
-        final_name = random.choice(
-            ["GameStop", "Eric15342335", "原神，启动！"]
-        )
+        final_name = random.choice(["GameStop", "Eric15342335", "原神，启动！"])
     return "".join(final_name)
 
 
@@ -79,7 +78,7 @@ class Stock:
 
     def __init__(self, order: int) -> None:
         """Set stock price, initialize inventory count, stock history"""
-        self.price = round(random.uniform(10, 200), PRECISION)
+        self.price = round(random.uniform(10, random.uniform(100, 200)), PRECISION)
         self.inventory = 0
         self.history = [self.price]
         self.index = order
@@ -87,9 +86,11 @@ class Stock:
 
     def purchase_test(self, amount: int, balance: float) -> bool:
         """Return True if player has enough money to buy {amount} stocks"""
-        return (
-            balance - amount * self.price * (1 + STOCK_TRADE_FEE_PERCENTAGE / 100) >= 0
-        )
+        return balance - self.actual_price(amount) >= 0
+
+    def actual_price(self, amount: int) -> float:
+        """Return actual price of {amount} stocks"""
+        return amount * self.price * (1 + STOCK_TRADE_FEE_PERCENTAGE / 100)
 
     def purchase(
         self, amount: int, balance: float, trading_fees_percentage: float
@@ -104,6 +105,10 @@ class Stock:
             balance - amount * self.price * (1 + trading_fees_percentage / 100),
             fee_cost,
         )
+
+    def get_affordance(self, balance: float) -> int:
+        """Return amount of stock that can be bought with current balance"""
+        return int(balance / self.actual_price(1))
 
     def next_day(self) -> None:
         """Generate new stock price base on current stock price"""
@@ -178,9 +183,11 @@ def display_stock_information_table(
                 stock_objects.index,
                 stock_objects.name,
                 round(stock_objects.price, PRECISION),
-                f"{_a[0] if _a[0] < 0 else '+' + str(_a[0])} ({_a[1] if _a[1] < 0 else '+' + str(_a[1])}%)",
+                f"{_a[0] if _a[0] < 0 else '+' + str(_a[0])}"
+                " "
+                f"({_a[1] if _a[1] < 0 else '+' + str(_a[1])}%)",
                 stock_objects.inventory,
-                int(balance / stock_objects.price),
+                stock_objects.get_affordance(balance),
                 stock_objects.get_average_price(5),
             ]
         )
@@ -203,7 +210,8 @@ while True:
                         amount_to_buy, MONEY, STOCK_TRADE_FEE_PERCENTAGE
                     )
                     print(
-                        f"Successfully bought {amount_to_buy} stock(s)! Paid {fee_deducted} for trading fees."
+                        f"Successfully bought {amount_to_buy} stock(s)!",
+                        f"Paid {fee_deducted} for trading fees.",
                     )
                 else:
                     print("You do not have enough MONEY to buy!")
@@ -217,7 +225,8 @@ while True:
                         0 - amount_to_sell, MONEY, STOCK_TRADE_FEE_PERCENTAGE
                     )
                     print(
-                        f"Successfully sold {amount_to_sell} stock(s)! Paid {fee_deducted} for trading fees."
+                        f"Successfully sold {amount_to_sell} stock(s)!",
+                        f"Paid {fee_deducted} for trading fees.",
                     )
             case "INVENTORY" | "INV":
                 print(f"Your current balance is {MONEY}")
