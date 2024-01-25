@@ -36,16 +36,41 @@ import sys
 import prettytable
 
 # year-month-day-version
-VERSION = "2024.01.25-1"
+VERSION = "2024.01.25-2"
 PRECISION = 1
 
 
 def pseudo_norm():
     """Generate a value between 1-10000 in a normal distribution"""
     # https://stackoverflow.com/a/70780909
-    count = random.randint(10, 100)
+    count = random.randint(3, 20)
     values = sum((random.randint(1, 10000) for _ in range(count)))
     return round(values / count)
+
+
+def get_random_name() -> str:
+    list_of_endings = [
+        " Inc.",
+        " Corp.",
+        " Ltd.",
+        " Co.",
+        " LLC",
+        " & Co.",
+        " Group",
+        " Holdings",
+        " Corporation",
+        " Company",
+        " Enterprises",
+        " International",
+    ]
+    final_name = [chr(random.randint(65, 90)) for _ in range(3)]
+    final_name += random.choice(list_of_endings)
+    # easter egg
+    if random.randint(1, 30) == 1:
+        final_name = random.choice(
+            ["GameStop", "Eric15342335", "原神，启动！"]
+        )
+    return "".join(final_name)
 
 
 class Stock:
@@ -57,7 +82,8 @@ class Stock:
         self.price = round(random.uniform(10, 200), PRECISION)
         self.inventory = 0
         self.history = [self.price]
-        self.name = order
+        self.index = order
+        self.name = get_random_name()
 
     def purchase_test(self, amount: int, balance: float) -> bool:
         """Return True if player has enough money to buy {amount} stocks"""
@@ -136,6 +162,7 @@ def display_stock_information_table(
     print("Current stock price:")
     to_be_printed = prettytable.PrettyTable()
     to_be_printed.field_names = [
+        "Index",
         "Stock name",
         "Price",
         "Change",
@@ -148,6 +175,7 @@ def display_stock_information_table(
         _a = stock_objects.get_price_change()
         to_be_printed.add_row(
             [
+                stock_objects.index,
                 stock_objects.name,
                 round(stock_objects.price, PRECISION),
                 f"{_a[0] if _a[0] < 0 else '+' + str(_a[0])} ({_a[1] if _a[1] < 0 else '+' + str(_a[1])}%)",
@@ -168,7 +196,7 @@ while True:
         ).upper()
         match inputted_command:
             case "BUY" | "B":
-                stock_to_buy = int(input("Input stock number to buy: "))
+                stock_to_buy = int(input("Input stock index to buy: "))
                 amount_to_buy = int(input("Input amount of stock to buy: "))
                 if stock_list[stock_to_buy - 1].purchase_test(amount_to_buy, MONEY):
                     MONEY, fee_deducted = stock_list[stock_to_buy - 1].purchase(
@@ -180,7 +208,7 @@ while True:
                 else:
                     print("You do not have enough MONEY to buy!")
             case "SELL" | "S":
-                stock_to_sell = int(input("Input stock number to sell: "))
+                stock_to_sell = int(input("Input stock index to sell: "))
                 amount_to_sell = int(input("Input amount of stock to sell: "))
                 if amount_to_sell > stock_list[stock_to_sell - 1].inventory:
                     print("You do not have enough stock to sell!")
