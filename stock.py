@@ -1,7 +1,11 @@
 """
 Stock Market Simulator
-README: Please install prettytable before running this script:
-        `pip install prettytable`
+README:
+    Please install prettytable before running this script:
+    `pip install prettytable`
+
+USAGE:
+    python stock.py [number of stocks (default: 3)]
 
 MIT License
 
@@ -28,18 +32,19 @@ SOFTWARE.
 
 
 import random
+import sys
 
 import prettytable
 
 # year-month-day-version
-VERSION = "2024.01.24-2"
+VERSION = "2024.01.24-3"
 PRECISION = 1
 
 
 def pseudo_norm():
     """Generate a value between 1-10000 in a normal distribution"""
     # https://stackoverflow.com/a/70780909
-    count = 100
+    count = random.randint(10, 100)
     values = sum((random.randint(1, 10000) for _ in range(count)))
     return round(values / count)
 
@@ -57,13 +62,23 @@ class Stock:
 
     def purchase_test(self, amount: int, balance: float) -> bool:
         """Return True if player has enough money to buy {amount} stocks"""
-        return balance - amount * self.price >= 0
+        return (
+            balance - amount * self.price * (1 + STOCK_TRADE_FEE_PERCENTAGE / 100) >= 0
+        )
 
-    def purchase(self, amount: int, balance: float) -> float:
+    def purchase(
+        self, amount: int, balance: float, trading_fees_percentage: float
+    ) -> tuple[float, float]:
         """Deduct money and increase inventory, and return new balance value
         Warning! This assumes player has enough money to purchase!"""
         self.inventory += amount
-        return balance - amount * self.price
+        if amount > 0:
+            trading_fees_percentage = 0 - trading_fees_percentage
+        fee_deducted = amount * self.price * trading_fees_percentage / 100
+        return (
+            balance - amount * self.price * (1 + trading_fees_percentage / 100),
+            fee_deducted,
+        )
 
     def next_day(self) -> None:
         """Generate new stock price base on current stock price"""
@@ -96,6 +111,9 @@ class Stock:
 # Game settings
 STOCK_COUNT = 3
 MONEY = 1000
+STOCK_TRADE_FEE_PERCENTAGE = 0.1
+if len(sys.argv) == 2:
+    STOCK_COUNT = int(sys.argv[1])
 
 # initialize stock
 print()
@@ -104,7 +122,9 @@ print("Initializing game....")
 stock_list = [Stock(count) for count in range(1, STOCK_COUNT + 1)]
 
 print(f"Number of stocks: {STOCK_COUNT}")
-print(f"Default MONEY: {MONEY}")
+print(f"Default money: {MONEY}")
+print(f"Default precision: {PRECISION}")
+print(f"Stock trading fees: {STOCK_TRADE_FEE_PERCENTAGE}%")
 
 print()
 print(f"Welcome to Stock Market Simulator {VERSION}!")
@@ -136,7 +156,7 @@ def display_stock_information_table(
             ]
         )
     print(to_be_printed)
-    print(f"Your current balance is {balance}")
+    print(f"Your current balance is {round(balance, PRECISION)}")
 
 
 while True:
@@ -150,7 +170,9 @@ while True:
                 stock_to_buy = int(input("Input stock number to buy: "))
                 amount_to_buy = int(input("Input amount of stock to buy: "))
                 if stock_list[stock_to_buy - 1].purchase_test(amount_to_buy, MONEY):
-                    MONEY = stock_list[stock_to_buy - 1].purchase(amount_to_buy, MONEY)
+                    MONEY = stock_list[stock_to_buy - 1].purchase(
+                        amount_to_buy, MONEY, STOCK_TRADE_FEE_PERCENTAGE
+                    )
                     print(f"Successfully bought {amount_to_buy} stock(s)!")
                 else:
                     print("You do not have enough MONEY to buy!")
@@ -160,8 +182,9 @@ while True:
                 if amount_to_sell > stock_list[stock_to_sell - 1].inventory:
                     print("You do not have enough stock to sell!")
                 else:
-                    MONEY += stock_list[stock_to_sell - 1].price * amount_to_sell
-                    stock_list[stock_to_sell - 1].inventory -= amount_to_sell
+                    MONEY += stock_list[stock_to_sell - 1].purchase(
+                        0 - amount_to_sell, MONEY, STOCK_TRADE_FEE_PERCENTAGE
+                    )
                     print(f"Successfully sold {amount_to_sell} stock(s)!")
             case "INVENTORY":
                 print(f"Your current balance is {MONEY}")
@@ -172,7 +195,7 @@ while True:
                     inventory_table.add_row([stocks.name, stocks.inventory])
                 print(inventory_table)
             case "NEXT-DAY":
-                print("You have chosen to go to next day!")
+                print()
                 for stocks in stock_list:
                     stocks.next_day()
                 break
