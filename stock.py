@@ -50,10 +50,7 @@ def get_random_name() -> str:
         " & Co.",
         " Group",
         " Holdings",
-        " Corporation",
         " Company",
-        " Enterprises",
-        " International",
     ]
     # Generate 3 character name, e.g. 'ABC' 'XYZ' 'BYD'
     # 65-90 is A-Z in ASCII
@@ -186,7 +183,7 @@ STOCK_COUNT = 10
 # Starting money
 MONEY = 1000
 # Stock trading fees in percentage
-STOCK_TRADE_FEE_PERCENTAGE = 0.1
+STOCK_TRADE_FEE_PERCENTAGE = 0.5
 # support command line argument $1 for STOCK_COUNT
 if len(sys.argv) == 2:
     STOCK_COUNT = int(sys.argv[1])
