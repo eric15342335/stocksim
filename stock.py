@@ -155,8 +155,7 @@ class Stock:
     def get_average_price(self, days: int) -> float:
         """Return average stock value of the most recent {days} days"""
         # If stock history is shorter than {days}, return average of all stock history
-        if days > len(self.history):
-            days = len(self.history)
+        days = min(len(self.history), days)
         # First, revert the list using [::-1]
         # Next, get the first {days} elements using [0:days]
         return round(sum(self.history[::-1][0:days]) / days, PRECISION)
